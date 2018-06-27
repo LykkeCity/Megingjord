@@ -6,6 +6,9 @@ namespace Megingjord
     [PublicAPI]
     public interface IVeChainThorBlockchain
     {
+        [ItemNotNull]
+        Task<string> SendRawTransactionAsync([NotNull] string signedTransaction);
+        
         [ItemCanBeNull]
         Task<AccountState> TryGetAccountStateAsync([NotNull] string address);
         

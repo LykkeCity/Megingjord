@@ -34,6 +34,11 @@ namespace Megingjord
             );
         }
 
+        public Task<string> SendRawTransactionAsync(string signedTransaction)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public Task<AccountState> TryGetAccountStateAsync(string address)
         {
             return TryGetAccountStateAsync(address, BlockRevision.Best);
