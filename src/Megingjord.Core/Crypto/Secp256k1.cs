@@ -4,13 +4,40 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Nethereum.Signer.Crypto;
 using Nethereum.Util;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Security;
+
 
 namespace Megingjord.Core.Crypto
 {
     [PublicAPI]
     public static class Secp256K1
     {
+        private static readonly SecureRandom SecureRandom = new SecureRandom();
+
+
+        public static byte[] GeneratePrivateKey()
+        {
+            while (true)
+            {
+                var generator = new ECKeyPairGenerator("EC");
+                var generatorInitParams = new KeyGenerationParameters(SecureRandom, 256);
+
+                generator.Init(generatorInitParams);
+
+                var keyPair = generator.GenerateKeyPair();
+                var privateBytes = ((ECPrivateKeyParameters) keyPair.Private).D.ToByteArray();
+
+                if (privateBytes.Length == 32)
+                {
+                    return privateBytes;
+                }
+            }
+        }
+
         public static byte[] GetAddress(
             byte[] publicKey)
         {

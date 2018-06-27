@@ -21,6 +21,9 @@ namespace Megingjord.Core.Tests
             
             decodedTransaction.ChainTag
                 .Should().BeEquivalentTo(transaction.ChainTag);
+
+            decodedTransaction.Clauses
+                .Should().HaveSameCount(transaction.Clauses);
             
             decodedTransaction.DependsOn
                 .Should().BeEquivalentTo(transaction.DependsOn);
@@ -38,11 +41,10 @@ namespace Megingjord.Core.Tests
                 .Should().BeEquivalentTo(transaction.Nonce);
 
             
+            
+            
             var clauses = transaction.Clauses.ToList();
             var decodedClauses = decodedTransaction.Clauses.ToList();
-            
-            decodedClauses.Count
-                .Should().Be(clauses.Count);
 
             for (var i = 0; i < decodedClauses.Count; i++)
             {

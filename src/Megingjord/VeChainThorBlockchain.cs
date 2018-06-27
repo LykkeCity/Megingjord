@@ -2,7 +2,9 @@
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Megingjord.Core;
-using Megingjord.Utils;
+using Megingjord.Core.Models;
+using Megingjord.Interfaces;
+using Nethereum.Hex.HexConvertors.Extensions;
 
 
 namespace Megingjord
@@ -13,12 +15,14 @@ namespace Megingjord
         private readonly IVeChainThorApi _apiClient;
         
         
-        internal VeChainThorBlockchain(IVeChainThorApi apiClient)
+        internal VeChainThorBlockchain(
+            IVeChainThorApi apiClient)
         {
             _apiClient = apiClient;
         }
         
-        public static IVeChainThorBlockchain Create(string hostUrl)
+        public static IVeChainThorBlockchain Create(
+            string hostUrl)
         {
             return new VeChainThorBlockchain
             (
@@ -26,7 +30,8 @@ namespace Megingjord
             );
         }
         
-        public static IVeChainThorBlockchain Create(HttpClient httpClient)
+        public static IVeChainThorBlockchain Create(
+            HttpClient httpClient)
         {
             return new VeChainThorBlockchain
             (
@@ -34,17 +39,26 @@ namespace Megingjord
             );
         }
 
-        public Task<string> SendRawTransactionAsync(string signedTransaction)
+        public async Task<string> SendRawTransactionAsync(
+            string signedTransaction)
         {
-            throw new System.NotImplementedException();
+            var response = await _apiClient.SendTransaction(new SendTransactionRequest
+            {
+                Raw = signedTransaction
+            });
+
+            return response.Id;
         }
 
-        public Task<AccountState> TryGetAccountStateAsync(string address)
+        public Task<AccountState> TryGetAccountStateAsync(
+            string address)
         {
             return TryGetAccountStateAsync(address, BlockRevision.Best);
         }
         
-        public async Task<AccountState> TryGetAccountStateAsync(string address, BlockRevision revision)
+        public async Task<AccountState> TryGetAccountStateAsync(
+            string address,
+            BlockRevision revision)
         {
             var response = await _apiClient.GetAccountAsync(address, revision);
 
@@ -52,8 +66,8 @@ namespace Megingjord
             {
                 return new AccountState
                 (
-                    balance: HexStringToBigIntegerConverter.Convert(response.Balance),
-                    energy: HexStringToBigIntegerConverter.Convert(response.Energy),
+                    balance: response.Balance.HexToBigInteger(false),
+                    energy: response.Balance.HexToBigInteger(false),
                     hasCode: response.HasCode
                 );
             }

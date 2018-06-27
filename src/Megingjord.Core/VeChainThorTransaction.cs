@@ -246,9 +246,22 @@ namespace Megingjord.Core
 
         private byte[] Encode(bool includeSignature)
         {
-            byte[] EncodeClauses()
+            byte[] EncodeBlockRef(byte[] bytes)
             {
-                var clauses = Clauses.Select(x => 
+                for (var i = 0; i < bytes.Length; i++)
+                {
+                    if (bytes[i] != 0)
+                    {
+                        return bytes.Slice(i);
+                    }
+                }
+
+                return EncodeElement(bytes);
+            }
+            
+            byte[] EncodeClauses(IEnumerable<Clause> clauses)
+            {
+                var encodedClauses = clauses.Select(x => 
                     
                     EncodeList
                     (                
@@ -259,17 +272,15 @@ namespace Megingjord.Core
                     
                 ).ToArray();
 
-                return EncodeList(clauses);
+                return EncodeList(encodedClauses);
             }
 
-            var trimmedBlockRef = TrimLeadingZeroes(BlockRef);
-            
             var encodedData = new List<byte[]>
             {
                 EncodeElement(ChainTag),
-                EncodeElement(trimmedBlockRef),
+                EncodeBlockRef(BlockRef),
                 EncodeElement(Expiration),
-                EncodeClauses(),
+                EncodeClauses(Clauses),
                 EncodeElement(GasPriceCoef),
                 EncodeElement(Gas),
                 EncodeElement(DependsOn),
@@ -298,21 +309,6 @@ namespace Megingjord.Core
                 data: Encode(includeSignature: false)
             );
         }
-        
-        private static byte[] TrimLeadingZeroes(byte[] bytes)
-        {
-            for (var i = 0; i < bytes.Length; i++)
-            {
-                if (bytes[i] != 0)
-                {
-                    return bytes.Slice(i);
-                }
-            }
-
-            return bytes;
-        }
-        
-        
         
         
         public sealed class Clause
