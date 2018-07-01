@@ -42,7 +42,7 @@ namespace Megingjord
         public async Task<string> SendRawTransactionAsync(
             string signedTransaction)
         {
-            var response = await _apiClient.SendTransaction(new SendTransactionRequest
+            var response = await _apiClient.SendTransactionAsync(new SendTransactionRequest
             {
                 Raw = signedTransaction
             });

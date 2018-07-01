@@ -40,6 +40,6 @@ namespace Megingjord.Core
         Task<TransactionReceiptResponse> GetTransactionReceipt(string id, string revision);
         
         [Post("/transactions")]
-        Task<SendTransactionResponse> SendTransaction([Body] SendTransactionRequest request);
+        Task<SendTransactionResponse> SendTransactionAsync([Body] SendTransactionRequest request);
     }
 }
