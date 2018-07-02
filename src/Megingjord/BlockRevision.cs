@@ -5,8 +5,8 @@ namespace Megingjord
     [PublicAPI]
     public sealed class BlockRevision
     {
-        private const string GenesisBlock = "earliest";
-        private const string BestBlock = "latest";
+        private const string GenesisBlock = "0";
+        private const string BestBlock = "best";
         
         public static BlockRevision Best { get; }
             = new BlockRevision(BestBlock);

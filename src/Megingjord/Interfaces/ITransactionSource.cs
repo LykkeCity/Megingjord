@@ -3,17 +3,17 @@
 
 namespace Megingjord.Interfaces
 {
-    public interface IUnpreparedTransaction
+    public interface ITransactionSource
     {   
-        ITransactionWithRequiredParams WithRequiredParams(
-            byte chainTag,
+        ITransactionSourceWithRequiredParams WithRequiredParams(
+            string chainTag,
             string blockRef,
             BigInteger gas,
             BigInteger nonce);
         
-        ITransactionWithRequiredParams WithRequiredParams(
+        ITransactionSourceWithRequiredParams WithRequiredParams(
             IVeChainThorBlockchain blockchain,
-            byte? chainTag = null,
+            string chainTag = null,
             string blockRef = null,
             BigInteger? gas = null,
             BigInteger? nonce = null);

@@ -6,6 +6,8 @@ namespace Megingjord.Interfaces
     {
         string AndEncode();
 
+        Task<string> AndEncodeAsync();
+        
         string AndSendTo(IVeChainThorBlockchain blockchain);
         
         Task<string> AndSendToAsync(IVeChainThorBlockchain blockchain);

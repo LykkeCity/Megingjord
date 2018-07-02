@@ -5,6 +5,7 @@ using Megingjord.Core;
 using Megingjord.Core.Models;
 using Megingjord.Interfaces;
 using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Util;
 
 
 namespace Megingjord
@@ -37,6 +38,24 @@ namespace Megingjord
             (
                 VeChainThorApiClientFactory.CreateClient(httpClient)
             );
+        }
+
+        public async Task<string> GetBlockRefAsync()
+        {
+            var response = await _apiClient.GetBlockAsync(BlockRevision.Best);
+            var id = response.Id.HexToByteArray();
+            var blockRef = id.Slice(0, 8);
+
+            return blockRef.ToHex(true);
+        }
+
+        public async Task<string> GetChainTagAsync()
+        {
+            var response = await _apiClient.GetBlockAsync(BlockRevision.Genesis);
+            var id = response.Id.HexToByteArray();
+            var chainTag = id.Slice(31);
+
+            return chainTag.ToHex(true);
         }
 
         public async Task<string> SendRawTransactionAsync(

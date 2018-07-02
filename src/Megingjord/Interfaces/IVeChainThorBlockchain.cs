@@ -7,6 +7,11 @@ namespace Megingjord.Interfaces
     public interface IVeChainThorBlockchain
     {
         [ItemNotNull]
+        Task<string> GetBlockRefAsync();
+        
+        Task<string> GetChainTagAsync();
+
+        [ItemNotNull]
         Task<string> SendRawTransactionAsync([NotNull] string signedTransaction);
         
         [ItemCanBeNull]

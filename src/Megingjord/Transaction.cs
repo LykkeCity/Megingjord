@@ -7,16 +7,18 @@ using JetBrains.Annotations;
 using Megingjord.Core;
 using Megingjord.Interfaces;
 using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.RLP;
+
 
 namespace Megingjord
 {
     [PublicAPI]
-    public class Transaction : IUnpreparedTransaction,
+    public class Transaction : ITransactionSource,
                                ISignedTransactionRestorer, IUnsignedTransactionRestorer,
-                               ITransactionWithRequiredParams, ISignedTransaction, IUnsignedTransaction
+                               ITransactionSourceWithRequiredParams, ISignedTransaction, IUnsignedTransaction
     {
-        private RequiredParams _requiredParams;
-        private NonrequiredParams _nonrequiredParams;
+        private Params _params;
+        private byte[] _privateKey;
         private VeChainThorTransaction _transaction;
 
 
@@ -25,7 +27,7 @@ namespace Megingjord
             
         }
 
-        public static IUnpreparedTransaction PrepareTransaction()
+        public static ITransactionSource PrepareTransaction()
         {
             return new Transaction();
         }
@@ -40,50 +42,83 @@ namespace Megingjord
             return new Transaction();
         }
 
-        private void BuildTransactionIfNecessary()
+        private async Task BuildTransactionAsync()
         {
-            if (_transaction == null)
-            {
-                throw new NotImplementedException();
-            }
-        }
+            await _params.ObtainMissedParamsAsync();
 
-        private string EncodeTransaction()
-        {
-            return _transaction
-                .Encode()
-                .ToHex(true);
+            var clauses = _params.Clauses.Select(x => 
+                new VeChainThorTransaction.Clause
+                (
+                    data: x.Data,
+                    to: x.To,
+                    value: x.Value?.ToBytesForRLPEncoding()
+                ));
+            
+            // ReSharper disable PossibleInvalidOperationException
+            _transaction = new VeChainThorTransaction
+            (
+                blockRef: _params.BlockRef.HexToByteArray(),
+                chainTag: _params.ChainTag.HexToByteArray(),
+                clauses: clauses,
+                dependsOn: _params.DependsOn?.HexToByteArray(),
+                expiration: _params.Expiration.Value.ToBytesForRLPEncoding(),
+                gas: _params.Gas.Value.ToBytesForRLPEncoding(),
+                gasPriceCoef: _params.GasPriceCoef.Value.ToBytesForRLPEncoding(),
+                nonce: _params.Nonce.Value.ToBytesForRLPEncoding(),
+                reserved: Array.Empty<byte[]>()
+            );
+            // ReSharper restore PossibleInvalidOperationException
         }
         
         #region ISignedTransaction
         
         string ISignedTransaction.AndEncode()
         {
-            BuildTransactionIfNecessary();
-
-            return EncodeTransaction();
+            return ((ISignedTransaction) this)
+                .AndEncodeAsync()
+                .Result;
         }
         
-        string ISignedTransaction.AndSendTo(IVeChainThorBlockchain blockchain)
+        async Task<string> ISignedTransaction.AndEncodeAsync()
         {
-            return ((ISignedTransaction) this).AndSendToAsync(blockchain).Result;
+            if (_transaction == null)
+            {
+                await BuildTransactionAsync();
+            }
+            
+            if (_transaction.Signature == null)
+            {
+                _transaction.Sign(_privateKey);
+            }
+
+            return _transaction
+                .Encode()
+                .ToHex(true);
+        }
+        
+        string ISignedTransaction.AndSendTo(
+            IVeChainThorBlockchain blockchain)
+        {
+            return ((ISignedTransaction) this)
+                .AndSendToAsync(blockchain)
+                .Result;
         }
 
-        Task<string> ISignedTransaction.AndSendToAsync(IVeChainThorBlockchain blockchain)
+        async Task<string> ISignedTransaction.AndSendToAsync(
+            IVeChainThorBlockchain blockchain)
         {
-            BuildTransactionIfNecessary();
+            var signedTransaction = await ((ISignedTransaction) this)
+                .AndEncodeAsync();
             
-            return blockchain.SendRawTransactionAsync
-            (
-                ((ISignedTransaction) this).AndEncode()
-            );
+            return await blockchain.SendRawTransactionAsync(signedTransaction);
         }
         
         #endregion
         
         #region ISignedTransactionRestorer
         
-        ISignedTransaction ISignedTransactionRestorer.From(byte[] txData)
+        ISignedTransaction ISignedTransactionRestorer.From(
+            byte[] txData)
         {
             _transaction = VeChainThorTransaction.Decode(txData);
 
@@ -99,7 +134,8 @@ namespace Megingjord
             return this;
         }
         
-        ISignedTransaction ISignedTransactionRestorer.From(string hexTxData)
+        ISignedTransaction ISignedTransactionRestorer.From(
+            string hexTxData)
         {
             return ((ISignedTransactionRestorer) this).From(hexTxData.HexToByteArray());
         }
@@ -108,14 +144,12 @@ namespace Megingjord
         
         #region ITransactionWithRequiredParams
 
-        IUnsignedTransaction ITransactionWithRequiredParams.With(
-            Action<NonrequiredParams> paramsBuilder)
+        IUnsignedTransaction ITransactionSourceWithRequiredParams.With(
+            Action<Params> paramsBuilder)
         {
-            var nonrequiredParams = new NonrequiredParams();
+            var nonrequiredParams = new Params();
             
             paramsBuilder(nonrequiredParams);
-            
-            BuildTransactionIfNecessary();
             
             return this;
         }
@@ -124,55 +158,58 @@ namespace Megingjord
         
         #region IUnpreparedTransaction
 
-        ITransactionWithRequiredParams IUnpreparedTransaction.WithRequiredParams(
+        ITransactionSourceWithRequiredParams ITransactionSource.WithRequiredParams(
             IVeChainThorBlockchain blockchain,
-            byte? chainTag,
+            string chainTag,
             string blockRef,
             BigInteger? gas,
             BigInteger? nonce)
         {
-            if (!chainTag.HasValue)
+            if (blockchain == null)
             {
-                throw new NotImplementedException();
+                throw new ArgumentNullException(nameof(blockchain));
             }
 
-            if (blockRef == null)
+            _params = new Params(blockchain);
+
+            if (chainTag != null)
             {
-                throw new NotImplementedException();
+                _params
+                    .WithChainTag(chainTag);
             }
 
-            if (!gas.HasValue)
+            if (blockRef != null)
             {
-                throw new NotImplementedException();
+                _params
+                    .WithBlockRef(blockRef);
             }
 
-            if (!nonce.HasValue)
+            if (gas.HasValue)
             {
-                nonce = NonceGenerator.NextRandomNonce();
+                _params
+                    .WithGas(gas.Value);
+            }
+
+            if (nonce.HasValue)
+            {
+                _params
+                    .WithNonce(nonce.Value);
             }
             
-            return ((IUnpreparedTransaction) this).WithRequiredParams
-            (
-                chainTag: chainTag.Value,
-                blockRef: blockRef,
-                gas: gas.Value,
-                nonce: nonce.Value
-            );
+            return this;
         }
         
-        ITransactionWithRequiredParams IUnpreparedTransaction.WithRequiredParams(
-            byte chainTag,
+        ITransactionSourceWithRequiredParams ITransactionSource.WithRequiredParams(
+            string chainTag,
             string blockRef,
             BigInteger gas,
             BigInteger nonce)
         {
-            _requiredParams = new RequiredParams
-            {
-                BlockRef = blockRef,
-                ChainTag = chainTag,
-                Gas = gas,
-                Nonce = nonce
-            };
+            _params = new Params()
+                .WithChainTag(chainTag)
+                .WithBlockRef(blockRef)
+                .WithGas(gas)
+                .WithNonce(nonce);
 
             return this;
         }
@@ -183,17 +220,27 @@ namespace Megingjord
         
         string IUnsignedTransaction.AndEncode()
         {
-            BuildTransactionIfNecessary();
+            return ((IUnsignedTransaction) this)
+                .AndEncodeAsync()
+                .Result;
+        }
+        
+        async Task<string> IUnsignedTransaction.AndEncodeAsync()
+        {
+            if (_transaction == null)
+            {
+                await BuildTransactionAsync();
+            }
 
-            return EncodeTransaction();
+            return _transaction
+                .Encode()
+                .ToHex(true);
         }
 
         ISignedTransaction IUnsignedTransaction.ThenSignWith(
             byte[] privateKey)
         {
-            BuildTransactionIfNecessary();
-            
-            _transaction.Sign(privateKey);
+            _privateKey = privateKey;
             
             return this;
         }
@@ -240,58 +287,167 @@ namespace Megingjord
         
         #endregion
 
-
+        #region Common
+        
         public class Clause
         {
-            public byte[] Data { get; set; }
-            
-            public Address To { get; set; }
-            
-            public BigInteger Value { get; set; }
-        }
-        
-        public class NonrequiredParams
-        {
-            private List<Clause> _clauses;
-
-            public IEnumerable<Clause> Clauses
-            {
-                get => _clauses;
-                set => _clauses = value.ToList();
-            }
-            
-            public string DependsOn { get; set; }
-            
-            public BigInteger Expiration { get; set; }
-            
-            public byte GasPriceCoef { get; set; }
-
-            
-            public NonrequiredParams WithClause(
+            internal Clause(
                 Address to,
-                BigInteger value,
+                BigInteger? value,
                 byte[] data)
             {
-                _clauses.Add(new Clause
+                Data = data;
+                To = to;
+                Value = value;
+            }
+            
+            public byte[] Data { get; }
+            
+            public Address To { get; }
+            
+            public BigInteger? Value { get; }
+        }
+        
+        [PublicAPI]
+        public class Params
+        {
+            private readonly IVeChainThorBlockchain _blockchain;
+            private readonly IList<Clause> _clauses;
+
+            
+            internal Params()
+            {
+                _clauses = new List<Clause>();
+            }
+            
+            internal Params(
+                IVeChainThorBlockchain blockchain) : this()
+            {
+                _blockchain = blockchain;
+            }
+            
+            
+            public string BlockRef { get; private set; }
+            
+            public string ChainTag { get; private set; }
+            
+            public string DependsOn { get; private set; }
+            
+            public BigInteger? Expiration { get; private set; }
+            
+            public BigInteger? Gas { get; private set; }
+            
+            public BigInteger? GasPriceCoef { get; private set; }
+            
+            public BigInteger? Nonce { get; private set; }
+            
+            public IEnumerable<Clause> Clauses 
+                => _clauses;
+
+
+            internal async Task ObtainMissedParamsAsync()
+            {
+                if (BlockRef == null)
                 {
-                    Data = data,
-                    To = to,
-                    Value = value
-                });
+                    BlockRef = await _blockchain.GetBlockRefAsync();
+                }
+
+                if (ChainTag == null)
+                {
+                    ChainTag = await _blockchain.GetChainTagAsync();
+                }
+
+                if (!Expiration.HasValue)
+                {
+                    Expiration = BigInteger.Zero;
+                }
                 
+                if (!Gas.HasValue)
+                {
+                    // TODO: Calculate required amount of gas
+                    
+                    Gas = new BigInteger(21000);
+                }
+
+                if (!GasPriceCoef.HasValue)
+                {
+                    GasPriceCoef = BigInteger.Zero;
+                }
+
+                if (!Nonce.HasValue)
+                {
+                    Nonce = NonceGenerator.NextRandomNonce();
+                }
+            }
+
+            public Params WithClause(
+                Address to,
+                BigInteger? value,
+                byte[] data)
+            {
+                _clauses.Add(
+                    new Clause(to, value, data));
+
+                return this;
+            }
+
+            public Params WithDependsOn(
+                string dependsOn)
+            {
+                DependsOn = dependsOn;
+
+                return this;
+            }
+
+            public Params WithExpiration(
+                BigInteger expiration)
+            {
+                Expiration = expiration;
+
+                return this;
+            }
+            
+            public Params WithGasPriceCoef(
+                BigInteger gasPriceCoef)
+            {
+                GasPriceCoef = gasPriceCoef;
+
+                return this;
+            }
+
+            internal Params WithBlockRef(
+                string blockRef)
+            {
+                BlockRef = blockRef;
+
+                return this;
+            }
+            
+            internal Params WithChainTag(
+                string chainTag)
+            {
+                ChainTag = chainTag;
+
+                return this;
+            }
+            
+            internal Params WithGas(
+                BigInteger gas)
+            {
+                Gas = gas;
+
+                return this;
+            }
+            
+            internal Params WithNonce(
+                BigInteger nonce)
+            {
+                Nonce = nonce;
+
                 return this;
             }
         }
-
-        internal class RequiredParams
-        {
-            public string BlockRef { get; set; }
-            
-            public byte ChainTag { get; set; }
-            
-            public BigInteger Gas { get; set; }
-            
-            public BigInteger Nonce { get; set; }
-        }
+        
+        #endregion
     }
 }

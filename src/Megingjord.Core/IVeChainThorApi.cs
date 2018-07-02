@@ -22,7 +22,7 @@ namespace Megingjord.Core
         Task<StorageValueResponse> GetAccountStorageValue(string address, string key, string revision);
         
         [Get("/blocks/{revision}")]
-        Task<BlockResponse> GetBlock(string revision);
+        Task<BlockResponse> GetBlockAsync(string revision);
         
         [Post("/events")]
         Task<EventsResponse> GetEvents(string address, string order, [Body] EventsRequest request);
