@@ -252,7 +252,9 @@ namespace Megingjord.Core
                 {
                     if (bytes[i] != 0)
                     {
-                        return bytes.Slice(i);
+                        bytes = bytes.Slice(i);
+
+                        break;
                     }
                 }
 
