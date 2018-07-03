@@ -9,13 +9,10 @@ using Nethereum.Hex.HexConvertors.Extensions;
 namespace Megingjord
 {
     [PublicAPI]
-    public sealed class Address
+    public sealed class Address : IFormattable
     {
-        private const string AddressPrefix = "Vx";
-        private const string HexPrefix = "0x";
-
         private static readonly Regex AddressStringExpression
-            = new Regex($@"^{AddressPrefix}[0-9a-fA-F]{{40}}$", RegexOptions.Compiled);
+            = new Regex(@"^(?:0x|VX){0,1}[0-9a-fA-F]{40}$", RegexOptions.Compiled);
         
         private readonly byte[] _addressBytes;
         
@@ -34,27 +31,20 @@ namespace Megingjord
 
             _addressBytes = addressBytes;
         }
-
-        public string ToHex(
-            bool prefix = true)
-        {
-            return _addressBytes.ToHex(prefix);
-        }
         
-        public override string ToString()
-        {
-            return $"{AddressPrefix}{_addressBytes.ToHex(prefix: false)}";
-        }
-
-
         public static Address Parse(
             string addressString)
         {
             ValidateFormatAndThrowIfInvalid(addressString);
+
+            if (addressString.StartsWith("0x") || addressString.StartsWith("VX"))
+            {
+                addressString = addressString.Remove(0, 2);
+            }
             
             return new Address
             (
-                addressBytes: Sanitize(addressString).HexToByteArray()
+                addressBytes: addressString.HexToByteArray()
             );
         }
         
@@ -87,14 +77,6 @@ namespace Megingjord
         {
             return ValidateFormat(addressString)
                 && ValidateChecksum(addressString);
-        }
-
-        
-        private static string Sanitize(
-            string addressString)
-        {
-            return addressString
-                .Replace(AddressPrefix, "");
         }
 
         private static bool ValidateChecksum(
@@ -135,17 +117,130 @@ namespace Megingjord
             }
         }
 
-        
+        /// <inheritdoc cref="object.ToString"/>
+        public override string ToString()
+        {
+            return ToString("0xLC");
+        }
+
+        /// <summary>
+        ///    Formats the value of the current instance using the specified format.
+        /// </summary>
+        /// <param name="format">
+        ///     0xLC - lower-case address with 0x prefix
+        ///     0xUC - upper-case address with 0x prefix
+        ///     0xCS - checksum address with 0x prefix
+        ///     VXLC - lower-case address with VX prefix
+        ///     VXUC - upper-case address with VX prefix
+        ///     VXCS - checksum address with VX prefix
+        ///     0xLC - lower-case address with no prefix
+        ///     0xUC - upper-case address with no prefix
+        ///     0xCS - checksum address with no prefix
+        /// </param>
+        public string ToString(string format)
+        {
+            return ToString(format, null);
+        }
+
+        /// <inheritdoc cref="IFormattable.ToString(string,System.IFormatProvider)"/>
+        public string ToString(string format, IFormatProvider formatProvider)
+        {
+            var addressString = _addressBytes.ToHex();
+
+            void AddChecksumToAddressString()
+            {
+                var addressBytes = Encoding.UTF8.GetBytes(addressString);
+                var caseMapBytes = Keccak256.Sum(addressBytes);
+                
+                var addressBuilder = new StringBuilder();
+                
+                for (var i = 0; i < 40; i++)
+                {
+                    var addressChar = addressString[i];
+                
+                    if (char.IsLetter(addressChar))
+                    {
+                        var leftShift = i % 2 == 0 ? 7 : 3;
+                        var shouldBeUpper = (caseMapBytes[i / 2] & (1 << leftShift)) != 0;
+
+                        if (shouldBeUpper)
+                        {
+                            addressChar = char.ToUpper(addressChar);
+                        }
+                    }
+                    
+                    addressBuilder.Append(addressChar);
+                }
+
+                addressString = addressBuilder.ToString();
+            }
+
+            void AddHexPrefixToAddressString()
+            {
+                addressString = $"0x{addressString}";
+            }
+            
+            void AddVeChainPrefixToAddressString()
+            {
+                addressString = $"VX{addressString}";
+            }
+            
+            void LowercaseAddressString()
+            {
+                addressString = addressString.ToLowerInvariant();
+            }
+            
+            void UppercaseAddressString()
+            {
+                addressString = addressString.ToUpperInvariant();
+            }
+            
+            switch (format)
+            {
+                case "0xLC":
+                    LowercaseAddressString();
+                    AddHexPrefixToAddressString();
+                    break;
+                case "0xUC":
+                    UppercaseAddressString();
+                    AddHexPrefixToAddressString();
+                    break;
+                case "0xCS":
+                    AddChecksumToAddressString();
+                    AddHexPrefixToAddressString();
+                    break;
+                case "VXLC":
+                    LowercaseAddressString();
+                    AddVeChainPrefixToAddressString();
+                    break;
+                case "VXUC":
+                    UppercaseAddressString();
+                    AddVeChainPrefixToAddressString();
+                    break;
+                case "VXCS":
+                    AddChecksumToAddressString();
+                    AddVeChainPrefixToAddressString();
+                    break;
+                case "LC":
+                    LowercaseAddressString();
+                    break;
+                case "UC":
+                    UppercaseAddressString();
+                    break;
+                case "CS":
+                    AddChecksumToAddressString();
+                    break;
+                default:
+                    throw new FormatException($"The '{format}' format string is not supported.");
+            }
+
+            return addressString;
+        }
+
         public static implicit operator byte[](
             Address address)
         {
             return address._addressBytes;
-        }
-
-        public static implicit operator string(
-            Address address)
-        {
-            return address.ToString();
         }
 
         public static explicit operator Address(
