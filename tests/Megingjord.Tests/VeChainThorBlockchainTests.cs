@@ -25,7 +25,7 @@ namespace Megingjord.Tests
 
             var blockchain = new VeChainThorBlockchain(apiClient.Object);
 
-            (await blockchain.GetBlockRefAsync())
+            (await blockchain.GetBlockRefAsync(BlockRevision.Best))
                 .Should().Be("0x0002d18ea07596b0");
         }
         

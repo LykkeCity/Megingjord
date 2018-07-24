@@ -6,18 +6,27 @@ namespace Megingjord.Interfaces
     [PublicAPI]
     public interface IVeChainThorBlockchain
     {
+        [ItemCanBeNull]
+        Task<BlockInfo> GetBlockAsync(
+            [NotNull] BlockRevision revision);
+        
         [ItemNotNull]
-        Task<string> GetBlockRefAsync();
+        Task<string> GetBlockRefAsync(
+            [NotNull] BlockRevision revision);
         
         Task<string> GetChainTagAsync();
 
         [ItemNotNull]
-        Task<string> SendRawTransactionAsync([NotNull] string signedTransaction);
+        Task<string> SendRawTransactionAsync(
+            [NotNull] string signedTransaction);
         
         [ItemCanBeNull]
-        Task<AccountState> TryGetAccountStateAsync([NotNull] string address);
+        Task<AccountState> TryGetAccountStateAsync(
+            [NotNull] string address);
         
         [ItemCanBeNull]
-        Task<AccountState> TryGetAccountStateAsync([NotNull] string address, [NotNull] BlockRevision revision);
+        Task<AccountState> TryGetAccountStateAsync(
+            [NotNull] string address,
+            [NotNull] BlockRevision revision);
     }
 }

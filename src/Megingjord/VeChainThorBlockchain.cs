@@ -40,9 +40,42 @@ namespace Megingjord
             );
         }
 
-        public async Task<string> GetBlockRefAsync()
+        public async Task<BlockInfo> GetBlockAsync(
+            BlockRevision revision)
         {
-            var response = await _apiClient.GetBlockAsync(BlockRevision.Best);
+            var response = await _apiClient.GetBlockAsync(revision);
+
+            if (response != null)
+            {
+                return new BlockInfo
+                (
+                    beneficiary: response.Beneficiary,
+                    gasLimit: response.GasLimit,
+                    gasUsed: response.GasUsed,
+                    id: response.Id,
+                    isTrunk: response.IsTrunk,
+                    number: response.Number,
+                    parentId: response.ParentId,
+                    receiptsRoot: response.ReceiptsRoot,
+                    signer: response.Signer,
+                    size: response.Size,
+                    stateRoot: response.StateRoot,
+                    timestamp: response.Timestamp,
+                    totalScore: response.TotalScore,
+                    transactions: response.Transactions,
+                    txsRoot: response.TxsRoot
+                );
+            }
+            else
+            {
+                return null;
+            }
+        }
+        
+        public async Task<string> GetBlockRefAsync(
+            BlockRevision revision)
+        {
+            var response = await _apiClient.GetBlockAsync(revision);
             var id = response.Id.HexToByteArray();
             var blockRef = id.Slice(0, 8);
 

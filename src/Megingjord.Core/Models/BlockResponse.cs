@@ -38,16 +38,16 @@ namespace Megingjord.Core.Models
         
         [JsonProperty("stateRoot")]
         public string StateRoot { get; set; }
-        
-        [JsonProperty("totalScore")]
-        public ulong TotalScore { get; set; }
-        
-        [JsonProperty("transactions")]
-        public string[] Transactions { get; set; }
-        
+
         [JsonProperty("timestamp")]
         public ulong Timestamp { get; set; }
-        
+
+        [JsonProperty("totalScore")]
+        public ulong TotalScore { get; set; }
+
+        [JsonProperty("transactions")]
+        public string[] Transactions { get; set; }
+
         [JsonProperty("txsRoot")]
         public string TxsRoot { get; set; }
     }

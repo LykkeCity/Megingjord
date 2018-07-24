@@ -349,7 +349,7 @@ namespace Megingjord
             {
                 if (BlockRef == null)
                 {
-                    BlockRef = await _blockchain.GetBlockRefAsync();
+                    BlockRef = await _blockchain.GetBlockRefAsync(BlockRevision.Best);
                 }
 
                 if (ChainTag == null)
