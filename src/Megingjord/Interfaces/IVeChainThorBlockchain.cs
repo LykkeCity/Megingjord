@@ -1,19 +1,21 @@
 ﻿using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Megingjord.Core;
 
 namespace Megingjord.Interfaces
 {
     [PublicAPI]
     public interface IVeChainThorBlockchain
     {
-        [ItemCanBeNull]
-        Task<BlockInfo> GetBlockAsync(
-            [NotNull] BlockRevision revision);
+        [NotNull]
+        IVeChainThorApi Api { get; }
+        
         
         [ItemNotNull]
         Task<string> GetBlockRefAsync(
             [NotNull] BlockRevision revision);
         
+        [ItemNotNull]
         Task<string> GetChainTagAsync();
 
         [ItemNotNull]
@@ -27,6 +29,10 @@ namespace Megingjord.Interfaces
         [ItemCanBeNull]
         Task<AccountState> TryGetAccountStateAsync(
             [NotNull] string address,
+            [NotNull] BlockRevision revision);
+        
+        [ItemCanBeNull]
+        Task<BlockInfo> TryGetBlockAsync(
             [NotNull] BlockRevision revision);
     }
 }

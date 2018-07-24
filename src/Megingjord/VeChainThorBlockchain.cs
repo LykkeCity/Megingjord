@@ -13,13 +13,10 @@ namespace Megingjord
     [PublicAPI]
     public class VeChainThorBlockchain : IVeChainThorBlockchain
     {
-        private readonly IVeChainThorApi _apiClient;
-        
-        
         internal VeChainThorBlockchain(
-            IVeChainThorApi apiClient)
+            IVeChainThorApi api)
         {
-            _apiClient = apiClient;
+            Api = api;
         }
         
         public static IVeChainThorBlockchain Create(
@@ -39,11 +36,15 @@ namespace Megingjord
                 VeChainThorApiClientFactory.CreateClient(httpClient)
             );
         }
+        
+        
+        public IVeChainThorApi Api { get; }
+        
 
-        public async Task<BlockInfo> GetBlockAsync(
+        public async Task<BlockInfo> TryGetBlockAsync(
             BlockRevision revision)
         {
-            var response = await _apiClient.GetBlockAsync(revision);
+            var response = await Api.GetBlockAsync(revision);
 
             if (response != null)
             {
@@ -71,11 +72,11 @@ namespace Megingjord
                 return null;
             }
         }
-        
+
         public async Task<string> GetBlockRefAsync(
             BlockRevision revision)
         {
-            var response = await _apiClient.GetBlockAsync(revision);
+            var response = await Api.GetBlockAsync(revision);
             var id = response.Id.HexToByteArray();
             var blockRef = id.Slice(0, 8);
 
@@ -84,7 +85,7 @@ namespace Megingjord
 
         public async Task<string> GetChainTagAsync()
         {
-            var response = await _apiClient.GetBlockAsync(BlockRevision.Genesis);
+            var response = await Api.GetBlockAsync(BlockRevision.Genesis);
             var id = response.Id.HexToByteArray();
             var chainTag = id.Slice(31);
 
@@ -94,7 +95,7 @@ namespace Megingjord
         public async Task<string> SendRawTransactionAsync(
             string signedTransaction)
         {
-            var response = await _apiClient.SendTransactionAsync(new SendTransactionRequest
+            var response = await Api.SendTransactionAsync(new SendTransactionRequest
             {
                 Raw = signedTransaction
             });
@@ -112,7 +113,7 @@ namespace Megingjord
             string address,
             BlockRevision revision)
         {
-            var response = await _apiClient.GetAccountAsync(address, revision);
+            var response = await Api.GetAccountAsync(address, revision);
 
             if (response != null)
             {
