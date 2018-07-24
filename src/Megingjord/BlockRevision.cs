@@ -40,7 +40,7 @@ namespace Megingjord
             return revision.ToString();
         }
         
-        public static implicit operator BlockRevision(ulong blockNumber)
+        public static implicit operator BlockRevision(BigInteger blockNumber)
         {
             return new BlockRevision(blockNumber);
         }
