@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Megingjord
 {
@@ -18,7 +19,7 @@ namespace Megingjord
         private readonly string _revision;
 
         
-        public BlockRevision(ulong blockNumber)
+        public BlockRevision(BigInteger blockNumber)
             : this(blockNumber.ToString())
         {
             
