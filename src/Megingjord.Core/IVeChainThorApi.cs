@@ -7,13 +7,13 @@ namespace Megingjord.Core
     public interface IVeChainThorApi
     {
         [Post("/accounts/{address}")]
-        Task<ContractCallResponse> CallContract(
+        Task<ContractCallResponse> CallContractAsync(
             string address,
             string revision,
             [Body] ContractCallRequest request);
         
         [Post("/accounts")]
-        Task<ContractCallResponse> CreateContract(
+        Task<ContractCallResponse> CreateContractAsync(
             string revision,
             [Body] ContractCallRequest request);
         
@@ -23,12 +23,12 @@ namespace Megingjord.Core
             string revision);
         
         [Get("/accounts/{address}/code")]
-        Task<CodeResponse> GetAccountCode(
+        Task<CodeResponse> GetAccountCodeAsync(
             string address,
             string revision);
         
         [Get("/accounts/{address}/storage/{key}")]
-        Task<StorageValueResponse> GetAccountStorageValue(
+        Task<StorageValueResponse> GetAccountStorageValueAsync(
             string address,
             string key,
             string revision);
@@ -38,26 +38,26 @@ namespace Megingjord.Core
             string revision);
         
         [Post("/events")]
-        Task<EventsResponse> GetEvents(
+        Task<EventsResponse> GetEventsAsync(
             string address,
             string order,
             [Body] EventsRequest request);
 
         [Post("/node/network/peers")]
-        Task<NetworkPeersResponse> GetNetworkPeers();
+        Task<NetworkPeersResponse> GetNetworkPeersAsync();
         
         [Post("/transfers")]
-        Task<TransfersResponse> GetTransfers(
+        Task<TransfersResponse> GetTransfersAsync(
             [Body] TransfersRequest request);
         
         [Get("/transactions/{id}")]
-        Task<TransactionResponse> GetTransaction(
+        Task<TransactionResponse> GetTransactionAsync(
             string id,
             bool raw,
             string revision);
         
         [Get("/transactions/{id}/receipt")]
-        Task<TransactionReceiptResponse> GetTransactionReceipt(
+        Task<TransactionReceiptResponse> GetTransactionReceiptAsync(
             string id, 
             string revision);
         
