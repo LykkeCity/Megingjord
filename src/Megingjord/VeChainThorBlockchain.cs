@@ -104,16 +104,16 @@ namespace Megingjord
         }
 
         public Task<AccountState> TryGetAccountStateAsync(
-            string address)
+            Address address)
         {
             return TryGetAccountStateAsync(address, BlockRevision.Best);
         }
         
         public async Task<AccountState> TryGetAccountStateAsync(
-            string address,
+            Address address,
             BlockRevision revision)
         {
-            var response = await Api.GetAccountAsync(address, revision);
+            var response = await Api.GetAccountAsync(address.ToString("0xLC"), revision);
 
             if (response != null)
             {

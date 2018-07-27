@@ -133,9 +133,9 @@ namespace Megingjord
         ///     VXLC - lower-case address with VX prefix
         ///     VXUC - upper-case address with VX prefix
         ///     VXCS - checksum address with VX prefix
-        ///     0xLC - lower-case address with no prefix
-        ///     0xUC - upper-case address with no prefix
-        ///     0xCS - checksum address with no prefix
+        ///     LC - lower-case address with no prefix
+        ///     UC - upper-case address with no prefix
+        ///     CS - checksum address with no prefix
         /// </param>
         public string ToString(string format)
         {

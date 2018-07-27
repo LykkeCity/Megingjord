@@ -24,11 +24,11 @@ namespace Megingjord.Interfaces
         
         [ItemCanBeNull]
         Task<AccountState> TryGetAccountStateAsync(
-            [NotNull] string address);
+            [NotNull] Address address);
         
         [ItemCanBeNull]
         Task<AccountState> TryGetAccountStateAsync(
-            [NotNull] string address,
+            [NotNull] Address address,
             [NotNull] BlockRevision revision);
         
         [ItemCanBeNull]
